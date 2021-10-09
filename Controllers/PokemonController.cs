@@ -6,10 +6,10 @@ using pokedex_api.Models;
 namespace pokedex_api.Controllers
 {
   [ApiController]
-  [Route("[controller]")]//rota das requisições serão feitas no nome do controlador
+  [Route("[controller]")]//rota requisições será nome do controlador
   public class PokemonController : ControllerBase
   {
-    public static List<Pokemon> pokedex = new List<Pokemon>();
+    public static Dictionary<int, Pokemon> pokedex = new Dictionary<int, Pokemon>();
     public static int id = 1;
 
     [HttpGet]
@@ -21,7 +21,15 @@ namespace pokedex_api.Controllers
     [HttpGet("{id}")]
     public IActionResult RetornaPokemonId(int id)
     {
-      Pokemon pokemon = pokedex.FirstOrDefault(pokemon => pokemon.Id == id);
+      Pokemon pokemon;
+      try
+      {
+        pokemon = pokedex[id];
+      }
+      catch (KeyNotFoundException)
+      {
+        pokemon = null;
+      }
       if (pokemon == null) return NotFound();
       return Ok(pokemon);
     }
@@ -29,9 +37,32 @@ namespace pokedex_api.Controllers
     [HttpPost]
     public IActionResult AdicionaPokemon([FromBody] Pokemon pokemon)
     {
-      pokemon.Id = id++;
-      pokedex.Add(pokemon);
-      return CreatedAtAction(nameof(RetornaPokemonId), new{id=pokemon.Id},pokemon);
+      pokemon.Id = id;
+      pokedex.Add(id, pokemon);
+      id++;
+      return CreatedAtAction(nameof(RetornaPokemonId), new { id = pokemon.Id }, pokemon);
+    }
+
+    [HttpPut("{id}")]
+    public IActionResult ModificaPokemon(int id,[FromBody] Pokemon pokemon)
+    {
+      if(pokedex.ContainsKey(id)){
+        pokemon.Id=id;
+        pokedex[id]=pokemon;
+        return CreatedAtAction(nameof(RetornaPokemonId),new{id=pokemon.Id},pokemon);
+      }
+      else
+        return NotFound();
+    }
+
+    [HttpDelete("{id}")]
+    public IActionResult DeletaPokemon(int id)
+    {
+      if(pokedex.ContainsKey(id)){
+        pokedex.Remove(id);
+        return Ok("id "+id+" deleted.");
+      }
+      return NotFound();
     }
   }
 }
