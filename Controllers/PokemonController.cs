@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using AutoMapper;
 using dotnet_api.Data;
+using dotnet_api.Data.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using pokedex_api.Models;
 
@@ -12,9 +15,11 @@ namespace pokedex_api.Controllers
   {
 
     private PokemonContext _context;
+    private IMapper _mapper;
 
-    public PokemonController(PokemonContext context)
+    public PokemonController(PokemonContext context,IMapper mapper)
     {
+      _mapper=mapper;
       _context=context;
     }
 
@@ -28,39 +33,44 @@ namespace pokedex_api.Controllers
     public IActionResult RetornaPokemonId(int id)
     {
       Pokemon pokemon = _context.Pokemons.FirstOrDefault(pokemon => pokemon.Id == id);
-      if(pokemon!=null)
-        return Ok(pokemon);
+      if(pokemon!=null){
+        ReadPokemonDto pokemonread;
+        pokemonread=_mapper.Map<ReadPokemonDto>(pokemon);
+        pokemonread.HoraDaConsulta=DateTime.Now;
+        return Ok(pokemonread);
+      }
       return NotFound();
     }
 
     [HttpPost]
-    public IActionResult AdicionaPokemon([FromBody] Pokemon pokemon)
+    public IActionResult AdicionaPokemon([FromBody] CreatePokemonDto pokemonDto)
     {
+      Pokemon pokemon = _mapper.Map<Pokemon>(pokemonDto);
       _context.Pokemons.Add(pokemon);
       _context.SaveChanges();
       return CreatedAtAction(nameof(RetornaPokemonId), new { id = pokemon.Id }, pokemon);
     }
 
-    // [HttpPut("{id}")]
-    // public IActionResult ModificaPokemon(int id,[FromBody] Pokemon pokemon)
-    // {
-    //   if(pokedex.ContainsKey(id)){
-    //     pokemon.Id=id;
-    //     pokedex[id]=pokemon;
-    //     return CreatedAtAction(nameof(RetornaPokemonId),new{id=pokemon.Id},pokemon);
-    //   }
-    //   else
-    //     return NotFound();
-    // }
+    [HttpPut("{id}")]
+    public IActionResult ModificaPokemon(int id,[FromBody] UpdatePokemonDto newPokemon)
+    {
+      Pokemon pokemon = _context.Pokemons.FirstOrDefault(pokemon => pokemon.Id == id);
+      if(pokemon == null)
+        return NotFound();
+      _mapper.Map(newPokemon,pokemon);
+      _context.SaveChanges();
+      return NoContent();
+    }
 
-    // [HttpDelete("{id}")]
-    // public IActionResult DeletaPokemon(int id)
-    // {
-    //   if(pokedex.ContainsKey(id)){
-    //     pokedex.Remove(id);
-    //     return Ok("id "+id+" deleted.");
-    //   }
-    //   return NotFound();
-    // }
+    [HttpDelete("{id}")]
+    public IActionResult DeletaPokemon(int id)
+    {
+      Pokemon pokemon = _context.Pokemons.FirstOrDefault(pokemon => pokemon.Id == id);
+      if(pokemon==null)
+        return NotFound();
+      _context.Remove(pokemon);
+      _context.SaveChanges();
+      return NoContent();
+    }
   }
 }
