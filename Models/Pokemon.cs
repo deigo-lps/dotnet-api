@@ -4,6 +4,8 @@ namespace pokedex_api.Models
 {
   public class Pokemon
   {
+    [Required]
+    [Key]
     public int Id { get; set; }
 
     [Required]
